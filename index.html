@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ريكو ستور - Rico Store | منصة الأفلام والمسلسلات العالمية</title>
+    <meta name="description" content="ريكو ستور (Rico Store) - المنصة المتكاملة لمشاهدة أحدث الأفلام والمسلسلات بجودة 4K و HD مع خوادم بث سريعة وترجمة احترافية.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+
+    <!-- Tailwind CSS (Fast, responsive utility framework) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rico: {
+                            red: '#e50914',
+                            redHover: '#ff1f35',
+                            dark: '#0a0b10',
+                            card: '#13151f',
+                            border: '#232738',
+                            gold: '#f5c518'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#0a0b10] text-gray-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white">
+
+    <!-- وضع السينما (تعتيم الشاشة) -->
+    <div id="cinemaOverlay" class="cinema-overlay hidden"></div>
+
+    <!-- شريط الإشعارات السريعة (Toast) -->
+    <div id="toastNotification" class="rico-toast">
+        <i class="fa-solid fa-circle-check text-red-500 text-lg"></i>
+        <span id="toastMessage">مرحباً بك في ريكو ستور</span>
+    </div>
+
+    <!-- نافذة إعلان اليوتيوب (Trailer Modal) -->
+    <div id="trailerModal" class="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="relative w-full max-w-4xl bg-[#13151f] rounded-2xl overflow-hidden border border-gray-800 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-[#0d0e15]">
+                <h3 id="trailerModalTitle" class="text-base font-bold text-gray-200 flex items-center gap-2">
+                    <i class="fa-brands fa-youtube text-red-600 text-xl"></i> الإعلان الرسمي
+                </h3>
+                <button id="closeTrailerBtn" class="text-gray-400 hover:text-white text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="player-aspect">
+                <iframe id="trailerIframe" src="" allowfullscreen allow="autoplay"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرأس الرئيسي للموقع (Header / Navbar) -->
+    <header id="siteHeader" class="sticky top-0 z-50 glass-nav border-b border-[#232738]/60 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 h-18 flex items-center justify-between gap-4">
+            
+            <!-- الشعار والروابط الرئيسية -->
+            <div class="flex items-center gap-8">
+                <a href="#home" class="flex items-center gap-2.5 text-2xl font-black tracking-tight group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-700 to-red-500 flex items-center justify-center shadow-lg shadow-red-600/30 group-hover:scale-105 transition">
+                        <i class="fa-solid fa-play text-white text-base"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xl font-black bg-gradient-to-r from-white via-gray-200 to-red-500 bg-clip-text text-transparent">ريكو ستور</span>
+                        <span class="text-[10px] font-mono tracking-widest text-red-500 font-bold -mt-1">RICO STORE</span>
+                    </div>
+                </a>
+
+                <!-- روابط التنقل على الشاشات الكبيرة -->
+                <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-300">
+                    <a href="#home" class="nav-link hover:text-red-500 transition py-1 flex items-center gap-1.5 active-nav" data-target="home">
+                        <i class="fa-solid fa-house text-xs"></i> الرئيسية
+                    </a>
+                    <a href="#movies" class="nav-link hover:text-red-500 transition py-1 flex items-center gap-1.5" data-target="movies">
+                        <i class="fa-solid fa-film text-xs"></i> أفلام
+                    </a>
+                    <a href="#tv" class="nav-link hover:text-red-500 transition py-1 flex items-center gap-1.5" data-target="tv">
+                        <i class="fa-solid fa-tv text-xs"></i> مسلسلات
+                    </a>
+                    <a href="#explore" class="nav-link hover:text-red-500 transition py-1 flex items-center gap-1.5" data-target="explore">
+                        <i class="fa-solid fa-compass text-xs"></i> تصفح وفلتر
+                    </a>
+                    <a href="#watchlist" class="nav-link hover:text-red-500 transition py-1 flex items-center gap-1.5" data-target="watchlist">
+                        <i class="fa-solid fa-bookmark text-xs"></i> قائمتي
+                        <span id="watchlistCountBadge" class="bg-red-600 text-[10px] px-1.5 py-0.2 rounded-full font-bold hidden">0</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- مربع البحث والإعدادات -->
+            <div class="flex items-center gap-3">
+                <!-- البحث السريع -->
+                <div class="relative w-48 sm:w-64 md:w-80">
+                    <div class="relative flex items-center">
+                        <input id="quickSearchInput" type="text" placeholder="ابحث عن فيلم، مسلسل، ممثل..." autocomplete="off"
+                            class="w-full bg-[#13151f] text-sm text-gray-200 placeholder-gray-500 rounded-xl py-2 pr-10 pl-8 border border-[#232738] focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 transition">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3.5 text-gray-400 text-xs"></i>
+                        <button id="clearSearchBtn" class="absolute left-2.5 text-gray-500 hover:text-gray-300 hidden text-xs p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- قائمة نتائج البحث المنبثقة -->
+                    <div id="searchDropdown" class="search-dropdown hidden"></div>
+                </div>
+
+                <!-- زر تبديل اللغة -->
+                <button id="langToggleBtn" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#13151f] border border-[#232738] text-xs font-semibold hover:border-gray-700 text-gray-300 transition">
+                    <i class="fa-solid fa-globe text-red-500"></i>
+                    <span id="langLabel">English</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الديناميكي الرئيسي (Main Container) -->
+    <div id="mainAppContainer" class="flex-1">
+
+        <!-- ======================= 1. الصفحة الرئيسية (Home View) ======================= -->
+        <div id="homeView" class="view-panel">
+            
+            <!-- سلايدر العرض المميز (Hero Featured Slider) -->
+            <section id="heroSection" class="relative min-h-[520px] md:min-h-[640px] flex items-center overflow-hidden">
+                <!-- صورة الخلفية المجهزة -->
+                <div id="heroBackdropContainer" class="absolute inset-0 -z-10">
+                    <img id="heroBackdrop" src="" alt="Backdrop" class="w-full h-full object-cover transition-all duration-700">
+                    <div class="absolute inset-0 hero-vignette"></div>
+                    <div class="absolute inset-0 hero-vignette-rtl"></div>
+                </div>
+
+                <!-- محتوى العمل المميز -->
+                <div class="max-w-7xl mx-auto px-4 lg:px-8 py-16 w-full">
+                    <div class="max-w-2xl">
+                        <!-- الشارات والمعلومات السريعة -->
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <span class="bg-red-600 text-white text-xs font-extrabold px-2.5 py-1 rounded-md tracking-wider">
+                                <i class="fa-solid fa-fire ml-1"></i> الحصريات على ريكو ستور
+                            </span>
+                            <span id="heroQuality" class="badge-quality">4K ULTRA HD</span>
+                            <span id="heroRating" class="badge-rating">★ 8.5</span>
+                            <span id="heroYear" class="text-xs text-gray-400 font-mono">2024</span>
+                            <span id="heroDuration" class="text-xs text-gray-400">128 دقيقة</span>
+                        </div>
+
+                        <!-- عنوان العمل -->
+                        <h1 id="heroTitle" class="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight mb-2 drop-shadow-lg">
+                            جاري التحميل...
+                        </h1>
+                        <h2 id="heroSubTitle" class="text-sm md:text-base font-medium text-gray-400 mb-4 font-mono"></h2>
+
+                        <!-- تصنيفات العمل -->
+                        <div id="heroGenres" class="flex flex-wrap gap-2 mb-4"></div>
+
+                        <!-- الملخص -->
+                        <p id="heroOverview" class="text-sm md:text-base text-gray-300 leading-relaxed mb-8 line-clamp-3 md:line-clamp-4 max-w-xl">
+                            استمتع بتجربة سينمائية لا مثيل لها عبر منصة ريكو ستور.
+                        </p>
+
+                        <!-- أزرار الإجراءات -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button id="heroPlayBtn" class="btn-primary text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2.5 text-sm md:text-base">
+                                <i class="fa-solid fa-play text-xs"></i> شاهد الآن
+                            </button>
+                            <button id="heroTrailerBtn" class="bg-[#13151f]/90 hover:bg-[#1e2233] text-gray-200 border border-gray-700 font-semibold px-5 py-3 rounded-xl flex items-center gap-2 text-sm transition">
+                                <i class="fa-brands fa-youtube text-red-500 text-base"></i> الإعلان الرسمي
+                            </button>
+                            <button id="heroWatchlistBtn" class="bg-[#13151f]/80 hover:bg-[#1e2233] text-gray-300 border border-gray-700 p-3 rounded-xl transition">
+                                <i class="fa-regular fa-bookmark text-base"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- أسهم التحكم بالسلايدر -->
+                <div class="absolute bottom-6 left-6 flex items-center gap-2 z-20">
+                    <button id="heroPrevBtn" class="w-10 h-10 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center border border-gray-800 transition">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                    <button id="heroNextBtn" class="w-10 h-10 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center border border-gray-800 transition">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- تصنيفات الأفلام والمسلسلات (Categories Rows) -->
+            <div id="categoriesSection" class="max-w-7xl mx-auto px-4 lg:px-8 py-10 space-y-12">
+                
+                <!-- صف 1: الرائج اليوم (Trending Today) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-red-600 rounded-full"></div>
+                            <h2 class="text-xl md:text-2xl font-black text-white">الأكثر رواجاً اليوم (Trending)</h2>
+                        </div>
+                        <a href="#explore?type=all&sort=popularity.desc" class="text-xs font-semibold text-red-500 hover:text-red-400 flex items-center gap-1">
+                            عرض الكل <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        </a>
+                    </div>
+                    <div id="rowTrending" class="horizontal-row"></div>
+                </div>
+
+                <!-- صف 2: أفلام سينمائية شائعة (Popular Movies) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-red-600 rounded-full"></div>
+                            <h2 class="text-xl md:text-2xl font-black text-white">أفلام ريكو ستور المميزة (Popular Movies)</h2>
+                        </div>
+                        <a href="#explore?type=movie&sort=popularity.desc" class="text-xs font-semibold text-red-500 hover:text-red-400 flex items-center gap-1">
+                            عرض الكل <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        </a>
+                    </div>
+                    <div id="rowMovies" class="horizontal-row"></div>
+                </div>
+
+                <!-- صف 3: مسلسلات تلفزيونية شائعة (Popular TV Shows) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-red-600 rounded-full"></div>
+                            <h2 class="text-xl md:text-2xl font-black text-white">أقوى المسلسلات التلفزيونية (TV Series)</h2>
+                        </div>
+                        <a href="#explore?type=tv&sort=popularity.desc" class="text-xs font-semibold text-red-500 hover:text-red-400 flex items-center gap-1">
+                            عرض الكل <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        </a>
+                    </div>
+                    <div id="rowTV" class="horizontal-row"></div>
+                </div>
+
+                <!-- صف 4: الأعلى تقييماً (Top Rated) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1.5 h-6 bg-red-600 rounded-full"></div>
+                            <h2 class="text-xl md:text-2xl font-black text-white">الأعلى تقييماً في التاريخ (Top Rated)</h2>
+                        </div>
+                        <a href="#explore?type=movie&sort=vote_average.desc" class="text-xs font-semibold text-red-500 hover:text-red-400 flex items-center gap-1">
+                            عرض الكل <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                        </a>
+                    </div>
+                    <div id="rowTopRated" class="horizontal-row"></div>
+                </div>
+
+                <!-- قسم التصنيفات السريعة (Genre Pills) -->
+                <div class="pt-6 border-t border-gray-900">
+                    <h3 class="text-lg font-bold mb-4 text-gray-200">استكشف حسب التصنيف</h3>
+                    <div id="genreChipsContainer" class="flex flex-wrap gap-2.5"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 2. صفحة المشاهدة والبث (Watch & Player View) ======================= -->
+        <div id="watchView" class="view-panel hidden max-w-7xl mx-auto px-4 lg:px-8 py-6">
+            
+            <!-- شريط علوي للرجوع -->
+            <div class="flex items-center justify-between mb-4">
+                <button id="backFromWatchBtn" class="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition">
+                    <i class="fa-solid fa-arrow-right"></i> العودة للمحتوى
+                </button>
+                <div class="flex items-center gap-2">
+                    <span id="currentPlayingEpisodeText" class="text-xs font-mono bg-red-600/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-full hidden"></span>
+                    <button id="cinemaModeBtn" class="bg-[#13151f] hover:bg-[#1e2233] border border-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-regular fa-lightbulb"></i> وضع السينما
+                    </button>
+                    <button id="playerFullscreenBtn" class="bg-[#13151f] hover:bg-[#1e2233] border border-gray-800 text-gray-300 text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-expand"></i> ملء الشاشة
+                    </button>
+                </div>
+            </div>
+
+            <!-- حاوية المشغل الرئيسي (Video Player) -->
+            <div id="playerMainCard" class="bg-[#0f1118] border border-gray-800 rounded-2xl p-3 md:p-5 shadow-2xl mb-6 transition-all duration-300">
+                
+                <div id="videoPlayerWrapper" class="player-aspect mb-4">
+                    <!-- مشغل الخوادم الخارجية -->
+                    <iframe id="streamingIframe" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    <!-- مشغل الفيديو المحلي كبديل -->
+                    <video id="nativeVideoPlayer" controls class="hidden"></video>
+                </div>
+
+                <!-- شريط خوادم البث المباشر (Server Switcher) -->
+                <div class="border-t border-gray-800/80 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400 font-bold whitespace-nowrap">
+                            <i class="fa-solid fa-tower-broadcast text-red-500 mr-1"></i> خوادم البث:
+                        </span>
+                        <div id="serverSelector" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <!-- أزرار الحلقات للمسلسلات -->
+                    <div id="tvEpisodeControls" class="flex items-center gap-2 hidden">
+                        <button id="prevEpisodeBtn" class="px-3 py-1.5 bg-gray-900 border border-gray-800 hover:border-gray-700 text-xs rounded-lg text-gray-300 transition">
+                            <i class="fa-solid fa-chevron-right ml-1"></i> الحلقة السابقة
+                        </button>
+                        <button id="nextEpisodeBtn" class="px-3 py-1.5 bg-gray-900 border border-gray-800 hover:border-gray-700 text-xs rounded-lg text-gray-300 transition">
+                            الحلقة التالية <i class="fa-solid fa-chevron-left mr-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم حلقات المسلسل (Seasons & Episodes Drawer) -->
+            <div id="episodesSection" class="bg-[#13151f] border border-gray-800 rounded-2xl p-5 mb-8 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-red-500"></i> قائمة الحلقات
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">اختر الموسم:</span>
+                        <select id="seasonSelector" class="bg-[#0a0b10] border border-gray-700 text-white text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-red-500"></select>
+                    </div>
+                </div>
+                <!-- شبكة الحلقات -->
+                <div id="episodesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- بطاقة تفاصيل العمل وطاقم التمثيل (Movie / TV Metadata) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- تفاصيل النص -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span id="watchTypeBadge" class="bg-red-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">فيلم</span>
+                            <span id="watchRatingBadge" class="badge-rating">★ 8.0</span>
+                            <span id="watchYearBadge" class="text-xs text-gray-400 font-mono">2024</span>
+                            <span id="watchRuntimeBadge" class="text-xs text-gray-400 font-mono">120 د</span>
+                            <span id="watchQualityBadge" class="badge-quality">4K</span>
+                        </div>
+                        <h2 id="watchTitle" class="text-2xl sm:text-3xl font-black text-white mb-1">اسم العمل</h2>
+                        <h3 id="watchOriginalTitle" class="text-xs text-gray-400 font-mono mb-3">Original Title</h3>
+                        <div id="watchGenres" class="flex flex-wrap gap-2 mb-4"></div>
+                        <p id="watchOverview" class="text-gray-300 text-sm sm:text-base leading-relaxed"></p>
+                    </div>
+
+                    <!-- أزرار التفاعل والمفضلة -->
+                    <div class="flex items-center gap-3 pt-2">
+                        <button id="watchAddBookmarkBtn" class="bg-gray-800/80 hover:bg-gray-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-gray-700 flex items-center gap-2 transition">
+                            <i class="fa-regular fa-bookmark"></i> إضافة إلى مفضلاتي
+                        </button>
+                        <button id="watchShareBtn" class="bg-gray-800/80 hover:bg-gray-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-gray-700 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-share-nodes"></i> مشاركة العمل
+                        </button>
+                    </div>
+
+                    <!-- طاقم التمثيل (Cast) -->
+                    <div>
+                        <h4 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-users text-red-500"></i> أبرز الممثلين والنجوم
+                        </h4>
+                        <div id="watchCastList" class="flex gap-4 overflow-x-auto pb-2"></div>
+                    </div>
+                </div>
+
+                <!-- الجانب الجانبي: الملصق والتوصيات -->
+                <div class="space-y-6">
+                    <div class="rounded-2xl overflow-hidden border border-gray-800 bg-[#13151f] shadow-lg">
+                        <img id="watchPoster" src="" alt="Poster" class="w-full object-cover">
+                    </div>
+
+                    <!-- أعمال مشابهة قد تعجبك -->
+                    <div class="bg-[#13151f] border border-gray-800 rounded-2xl p-4">
+                        <h4 class="text-sm font-bold text-white mb-3">أعمال مشابهة قد تعجبك</h4>
+                        <div id="watchSimilarList" class="space-y-2.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 3. صفحة الاستكشاف والتصفية (Explore & Filter View) ======================= -->
+        <div id="exploreView" class="view-panel hidden max-w-7xl mx-auto px-4 lg:px-8 py-8">
+            <div class="mb-6">
+                <h2 class="text-2xl md:text-3xl font-black text-white mb-2">استكشاف المحتوى والفلترة المتقدمة</h2>
+                <p class="text-xs md:text-sm text-gray-400">ابحث وتصفح آلاف الأفلام والمسلسلات وفق خيارات دقيقة ومخصصة لك.</p>
+            </div>
+
+            <!-- لوحة خيارات التصفية -->
+            <div class="bg-[#13151f] border border-gray-800 rounded-2xl p-4 md:p-6 mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- نوع المحتوى -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">نوع العمل</label>
+                    <select id="filterType" class="w-full bg-[#0a0b10] border border-gray-700 text-sm text-white rounded-xl px-3 py-2.5 focus:border-red-500 focus:outline-none">
+                        <option value="movie">أفلام (Movies)</option>
+                        <option value="tv">مسلسلات (TV Series)</option>
+                    </select>
+                </div>
+
+                <!-- التصنيف (Genre) -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">التصنيف والنوع</label>
+                    <select id="filterGenre" class="w-full bg-[#0a0b10] border border-gray-700 text-sm text-white rounded-xl px-3 py-2.5 focus:border-red-500 focus:outline-none">
+                        <option value="">جميع التصنيفات</option>
+                        <option value="28">أكشن</option>
+                        <option value="12">مغامرة</option>
+                        <option value="16">أنمي ورسوم متحركة</option>
+                        <option value="35">كوميديا</option>
+                        <option value="80">جريمة</option>
+                        <option value="18">دراما</option>
+                        <option value="14">فانتازيا</option>
+                        <option value="27">رعب</option>
+                        <option value="878">خيال علمي</option>
+                        <option value="53">إثارة</option>
+                    </select>
+                </div>
+
+                <!-- سنة الإصدار -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">سنة الإنتاج</label>
+                    <select id="filterYear" class="w-full bg-[#0a0b10] border border-gray-700 text-sm text-white rounded-xl px-3 py-2.5 focus:border-red-500 focus:outline-none">
+                        <option value="">كل السنوات</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                        <option value="2010">2010 - 2019</option>
+                    </select>
+                </div>
+
+                <!-- الترتيب -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5">الترتيب حسب</label>
+                    <select id="filterSort" class="w-full bg-[#0a0b10] border border-gray-700 text-sm text-white rounded-xl px-3 py-2.5 focus:border-red-500 focus:outline-none">
+                        <option value="popularity.desc">الأكثر شعبية ورواجاً</option>
+                        <option value="vote_average.desc">الأعلى تقييماً (IMDb)</option>
+                        <option value="primary_release_date.desc">أحدث تاريخ إصدار</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- شبكة نتائج الاستكشاف -->
+            <div id="exploreResultsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+
+            <!-- زر تحميل المزيد -->
+            <div class="mt-8 text-center">
+                <button id="exploreLoadMoreBtn" class="bg-[#13151f] hover:bg-red-600 border border-gray-700 hover:border-red-500 text-white text-sm font-bold px-8 py-3 rounded-xl transition shadow-lg">
+                    عرض المزيد من النتائج
+                </button>
+            </div>
+        </div>
+
+        <!-- ======================= 4. صفحة المفضلة (Watchlist View) ======================= -->
+        <div id="watchlistView" class="view-panel hidden max-w-7xl mx-auto px-4 lg:px-8 py-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-bookmark text-red-500"></i> قائمة مفضلاتي (Watchlist)
+                    </h2>
+                    <p class="text-xs md:text-sm text-gray-400">الأعمال المحفوظة لمشاهدتها لاحقاً على ريكو ستور.</p>
+                </div>
+                <button id="clearWatchlistBtn" class="text-xs text-gray-400 hover:text-red-500 border border-gray-800 hover:border-red-500/50 px-3 py-1.5 rounded-xl transition">
+                    مسح القائمة بالكامل
+                </button>
+            </div>
+
+            <!-- شبكة عناصر المفضلة -->
+            <div id="watchlistGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+
+            <!-- رسالة حالة الفراغ -->
+            <div id="watchlistEmptyState" class="hidden py-16 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-500 text-2xl">
+                    <i class="fa-regular fa-bookmark"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-300 mb-1">قائمة المفضلات فارغة</h3>
+                <p class="text-xs text-gray-500 mb-4">لم تقم بإضافة أي فيلم أو مسلسل بعد إلى قائمتك.</p>
+                <a href="#home" class="btn-primary inline-flex items-center gap-2 text-xs font-bold text-white px-5 py-2.5 rounded-xl">
+                    <i class="fa-solid fa-compass"></i> استكشف الآن
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- تذييل الموقع (Footer) -->
+    <footer id="siteFooter" class="bg-[#07080c] border-t border-gray-900 py-10 mt-16 text-gray-500 text-xs">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-sm">
+                    R
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-gray-200">ريكو ستور - Rico Store</h4>
+                    <p class="text-[11px] text-gray-500">واجهتك الأولى للترفيه السينمائي الرقمي بدون قيود.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-6 text-gray-400">
+                <a href="#home" class="hover:text-red-500 transition">الرئيسية</a>
+                <a href="#movies" class="hover:text-red-500 transition">الأفلام</a>
+                <a href="#tv" class="hover:text-red-500 transition">المسلسلات</a>
+                <a href="#explore" class="hover:text-red-500 transition">البحث والفلترة</a>
+                <a href="#watchlist" class="hover:text-red-500 transition">المفضلة</a>
+            </div>
+
+            <div class="text-center md:text-left">
+                <p>© 2026 ريكو ستور (Rico Store). جميع الحقوق محفوظة.</p>
+                <p class="text-[10px] text-gray-600 mt-0.5">مبني ومصمم بأعلى معايير الأداء والسرعة.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- شريط التنقل السفلي للأجهزة المحمولة (Mobile Bottom Dock) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-gray-800 px-2 py-2 flex items-center justify-around text-[10px] text-gray-400">
+        <a href="#home" class="mobile-nav-item flex flex-col items-center gap-1 py-1 text-red-500" data-target="home">
+            <i class="fa-solid fa-house text-base"></i>
+            <span>الرئيسية</span>
+        </a>
+        <a href="#movies" class="mobile-nav-item flex flex-col items-center gap-1 py-1" data-target="movies">
+            <i class="fa-solid fa-film text-base"></i>
+            <span>أفلام</span>
+        </a>
+        <a href="#tv" class="mobile-nav-item flex flex-col items-center gap-1 py-1" data-target="tv">
+            <i class="fa-solid fa-tv text-base"></i>
+            <span>مسلسلات</span>
+        </a>
+        <a href="#explore" class="mobile-nav-item flex flex-col items-center gap-1 py-1" data-target="explore">
+            <i class="fa-solid fa-compass text-base"></i>
+            <span>استكشاف</span>
+        </a>
+        <a href="#watchlist" class="mobile-nav-item flex flex-col items-center gap-1 py-1" data-target="watchlist">
+            <i class="fa-solid fa-bookmark text-base"></i>
+            <span>مفضلاتي</span>
+        </a>
+    </nav>
+
+    <!-- استدعاء ملفات الجافاسكريبت بالترتيب الصحيح مع معطيات منع الكاش -->
+    <script src="js/mock-data.js?v=1.1"></script>
+    <script src="js/api.js?v=1.1"></script>
+    <script src="js/player.js?v=1.1"></script>
+    <script src="js/app.js?v=1.1"></script>
+</body>
+</html>
